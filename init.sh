@@ -27,12 +27,16 @@ do_template() {
     password="$4"
     topics="$5"
 
-    # Construct the Failover URI with Exponential Backoff
-    # initialReconnectDelay=1000 (1 second start)
-    # backOffMultiplier=2.0 (Double wait time every failure)
-    # maxReconnectDelay=3700000 (Cap at ~61.6 minutes)
-    # Note: \\&amp; is required to escape for both SED and XML validity
-    url="failover:(${raw_url})?useExponentialBackOff=true\\&amp;backOffMultiplier=2.0\\&amp;initialReconnectDelay=1000\\&amp;maxReconnectDelay=3700000"
+    # --- CHANGE START ---
+    # We use __AMP__ as a placeholder to avoid 'sed' interpreting the & character
+    # failover:(...) wraps the original TCP url
+    # useExponentialBackOff=true
+    # backOffMultiplier=2 (Doubles wait time)
+    # maxReconnectDelay=3700000 (~61 mins)
+    
+    url="failover:(${raw_url})?useExponentialBackOff=true__AMP__backOffMultiplier=2__AMP__initialReconnectDelay=1000__AMP__maxReconnectDelay=3700000"
+    
+    # --- CHANGE END ---
 
     if [ -z "${topics}" ]; then
         rm -f "/srv/activemq/conf/$src_system.xml"
@@ -41,20 +45,29 @@ do_template() {
             /srv/activemq/conf/activemq.xml
 
         cp /srv/activemq/conf/topic.xml.template "/srv/activemq/conf/$src_system.xml"
-
-        # Inject the modified failover URL here
+        
+        # 1. Inject the URL with the __AMP__ placeholders
         sed -i \
             -e "s#\[URL\]#${url}#" \
             -e "s#\[SOURCE-SYSTEM\]#${src_system}#" \
             -e "s#\[USERNAME\]#${username}#" \
             -e "s#\[PASSWORD\]#${password}#" \
             "/srv/activemq/conf/${src_system}.xml"
+        
+        # 2. Convert __AMP__ to &amp; safely
+        # We use a loop or global replace. The slash is the standard delimiter here.
+        sed -i 's/__AMP__/\&amp;/g' "/srv/activemq/conf/${src_system}.xml"
 
+        # 3. Handle the Camel Routes
         echo "${topics}" \
             | tr ',' '\n' | while read TOPIC; do
-              new_route="        <route>\n            <from uri=\"${src_system}:topic:${TOPIC}?clientId=${username}-${TOPIC}\\&amp;durableSubscriptionName=${username}-${HN}\" />\n            <to uri=\"amq:topic:${TOPIC}\" />\n        </route>\n"
+              # Note: We also use __AMP__ here for consistency to avoid shell escaping hell
+              new_route="        <route>\n            <from uri=\"${src_system}:topic:${TOPIC}?clientId=${username}-${TOPIC}__AMP__durableSubscriptionName=${username}-${HN}\" />\n            <to uri=\"amq:topic:${TOPIC}\" />\n        </route>\n"
               sed -i -e "s#^    </camelContext>\$#${new_route}\n    </camelContext>#" "/srv/activemq/conf/${src_system}.xml"
             done
+            
+        # 4. Cleanup Camel Route AMPs
+        sed -i 's/__AMP__/\&amp;/g' "/srv/activemq/conf/${src_system}.xml"
     fi
 }
 
