@@ -1,7 +1,7 @@
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:8-jre-alpine
 
-ENV 	V=5.18.6	\
-	HAWTIO=1.5.12
+ENV 	V=5.16.5	\
+	HAWTIO=1.5.11
 
 RUN apk --no-cache add openssl
 
@@ -23,7 +23,7 @@ RUN echo "" >> "/srv/apache-activemq-${V}/bin/env"	\
  && echo 'ACTIVEMQ_OPTS="$ACTIVEMQ_OPTS -Dhawtio.authenticationEnabled=false"'	\
 	>> "/srv/apache-activemq-${V}/bin/env"
 
-RUN echo 'ACTIVEMQ_OPTS="$ACTIVEMQ_OPTS -javaagent:/srv/jmx-prom/agent.jar=9191:/srv/jmx-prom/config.yaml -XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -Dcom.sun.management.jmxremote.port=1099 -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"'	>> "/srv/apache-activemq-${V}/bin/env"
+RUN echo 'ACTIVEMQ_OPTS="$ACTIVEMQ_OPTS -javaagent:/srv/jmx-prom/agent.jar=9191:/srv/jmx-prom/config.yaml -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Dcom.sun.management.jmxremote.port=1099 -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"'	>> "/srv/apache-activemq-${V}/bin/env"
 
 COPY topic_template.xml /srv/activemq/conf/topic.xml.template
 COPY streamcache.xml    /srv/activemq/conf/streamcache.xml
@@ -45,4 +45,3 @@ VOLUME /srv/activemq/data
 EXPOSE 1099 1883 5672 8161 9191 61613 61614 61616
 
 CMD ["/init.sh"]
-
