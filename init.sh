@@ -34,7 +34,7 @@ do_template() {
     # backOffMultiplier=2 (Doubles wait time)
     # maxReconnectDelay=3700000 (~61 mins)
     
-    url="failover:(${raw_url})?useExponentialBackOff=true__AMP__backOffMultiplier=2__AMP__initialReconnectDelay=1000__AMP__maxReconnectDelay=3700000"
+    url="failover:(${raw_url})?useExponentialBackOff=true__AMP__initialReconnectDelay=1000__AMP__maxReconnectDelay=3700000"
     
     # --- CHANGE END ---
 
