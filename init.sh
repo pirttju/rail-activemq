@@ -22,10 +22,17 @@ sed -i 's#^</beans>$#    <import resource="streamcache.xml"/>\n</beans>#'  \
 
 do_template() {
     src_system="$1"
-    url="$2"
+    raw_url="$2"
     username="$3"
     password="$4"
     topics="$5"
+
+    # Construct the Failover URI with Exponential Backoff
+    # initialReconnectDelay=1000 (1 second start)
+    # backOffMultiplier=2.0 (Double wait time every failure)
+    # maxReconnectDelay=3700000 (Cap at ~61.6 minutes)
+    # Note: \\&amp; is required to escape for both SED and XML validity
+    url="failover:(${raw_url})?useExponentialBackOff=true\\&amp;backOffMultiplier=2.0\\&amp;initialReconnectDelay=1000\\&amp;maxReconnectDelay=3700000"
 
     if [ -z "${topics}" ]; then
         rm -f "/srv/activemq/conf/$src_system.xml"
@@ -34,6 +41,8 @@ do_template() {
             /srv/activemq/conf/activemq.xml
 
         cp /srv/activemq/conf/topic.xml.template "/srv/activemq/conf/$src_system.xml"
+
+        # Inject the modified failover URL here
         sed -i \
             -e "s#\[URL\]#${url}#" \
             -e "s#\[SOURCE-SYSTEM\]#${src_system}#" \
