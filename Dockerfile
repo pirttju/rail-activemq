@@ -1,7 +1,7 @@
 FROM eclipse-temurin:11-jre-alpine
 
 ENV 	V=5.19.1	\
-	HAWTIO=1.5.11
+	HAWTIO=1.5.12
 
 RUN apk --no-cache add openssl
 
